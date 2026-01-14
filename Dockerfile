@@ -5,8 +5,7 @@ COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
 COPY ./src ./pyproject.toml ./uv.lock /app/
 WORKDIR /app
 
-RUN uv build --clear --wheel
-RUN bash -c "pip3 install dist/*.whl"
+RUN uv build --clear --wheel && bash -c "pip3 install dist/*.whl"
 
 FROM python:3.14 AS runtime
 ARG ARG_PORT=41000
@@ -20,4 +19,5 @@ COPY --chmod=755 <<EOT /entrypoint.sh
 set -e
 uvicorn --port=${ARG_PORT} manipulator_scout:app
 EOT
+
 ENTRYPOINT ["/entrypoint.sh"]
