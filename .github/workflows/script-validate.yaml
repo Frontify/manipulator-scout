@@ -1,0 +1,26 @@
+name: Shellcheck
+
+on:
+  pull_request:
+    paths:
+      - '**/*.sh'
+      - '.github/workflows/script-validate.yaml'
+
+jobs:
+  validate-scripts:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Find shell scripts
+        run: |
+          find . -name "*.sh" > scripts.txt
+
+      - name: Validate shell scripts with shellcheck
+        run: |
+          while read script; do
+            echo "Validating $script"
+            shellcheck "$script"
+          done < scripts.txt
+        shell: bash

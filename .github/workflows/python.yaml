@@ -1,0 +1,45 @@
+name: Python package
+
+on:
+
+  push:
+    branches:
+    - main
+    tags:
+    - '[0-9]+.[0-9]+.[0-9]+(-rc.\d+)?'
+
+  pull_request:
+    branches:
+    - 'features/**'
+    types:
+    - opened
+    - synchronize
+    - reopened
+    - ready_for_review
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python: ["3.14"]
+
+    steps:
+      - uses: actions/checkout@v5
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+
+      - name: Install uv
+        run: pip install uv
+
+      - name: Check format
+        run: .ci/check_style.sh
+
+      - name: Run tests
+        run: .ci/run_tests.sh
+
+      - name: Build package
+        run: .ci/build_package.sh
