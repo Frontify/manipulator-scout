@@ -4,18 +4,18 @@ on:
 
   push:
     branches:
-    - main
+      - main
     tags:
-    - '[0-9]+.[0-9]+.[0-9]+(-rc.\d+)?'
+      - '[0-9]+.[0-9]+.[0-9]+(-rc.\d+)?'
 
   pull_request:
     branches:
-    - 'features/**'
+      - 'features/**'
     types:
-    - opened
-    - synchronize
-    - reopened
-    - ready_for_review
+      - opened
+      - synchronize
+      - reopened
+      - ready_for_review
 
 jobs:
   build:
