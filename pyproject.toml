@@ -1,6 +1,6 @@
 [project]
 name = "manipulator_scout"
-description = "Add your description here"
+description = "Web API endpoint for scouting, analyzing, and interpreting runtime telemetry from `manipulator` test executions."
 dynamic = ["version"]
 readme = "README.md"
 authors = [
