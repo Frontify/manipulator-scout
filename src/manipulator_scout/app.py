@@ -1,4 +1,3 @@
-import typing
 import fastapi
 
 from manipulator_scout import manipulator

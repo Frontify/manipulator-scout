@@ -1,11 +1,11 @@
 import datetime
 import json
+
 import numpy as np
 import pandas as pd
 import pydantic
 
 import manipulator_scout.units
-
 
 REQUEST_TIMEOUT_S = 60.0
 HEARTBEAT_URL = "http://undefined/v1/placeholder:1x1:orange?hc=1"
@@ -79,9 +79,7 @@ def evaluate_heartbeat(
     )
     info = InfoModel(
         branch=heartbeats["response.headers.server"][first_index].split("/")[1],
-        run_at=datetime.datetime.fromtimestamp(
-            convert_ms2s(heartbeats["timestamp"][first_index])
-        ),
+        run_at=datetime.datetime.fromtimestamp(convert_ms2s(heartbeats["timestamp"][first_index])),
     )
     return HeartBeatModel(info=info, heartbeats=beats)
 
@@ -98,11 +96,9 @@ def evaluate_stress(df: pd.DataFrame) -> StressModel | None:
     mean, stddev = analyze_timestamp_differences(timestamps_s)
     quantiles = [0.1, 0.25, 0.5, 0.75, 0.9, 0.95, 1.0]
     quantile_values = time_total.quantile(q=quantiles)
-    info=InfoModel(
+    info = InfoModel(
         branch=stress_objects["response.headers.server"][first_index].split("/")[1],
-        run_at=datetime.datetime.fromtimestamp(
-            convert_ms2s(stress_objects["timestamp"][first_index])
-        ),
+        run_at=datetime.datetime.fromtimestamp(convert_ms2s(stress_objects["timestamp"][first_index])),
     )
     heartbeat = evaluate_heartbeat(df) or HeartBeatModel(info=info, heartbeats=StatisticModel())
     model = StressModel(
@@ -110,8 +106,7 @@ def evaluate_stress(df: pd.DataFrame) -> StressModel | None:
         in_time=image_in_time,
         cancelled=stress_objects["cancelled"].sum(),
         timing=[
-            PercentileModel(percentile=p, value=v)
-            for (p, v) in zip(quantiles, quantile_values.map(convert_ms2s))
+            PercentileModel(percentile=p, value=v) for (p, v) in zip(quantiles, quantile_values.map(convert_ms2s))
         ],
         requests=StatisticModel(count=count, mean=mean, stddev=stddev),
         heartbeats=heartbeat.heartbeats,
