@@ -1,4 +1,4 @@
-name: Python package
+name: Python Package
 
 on:
 
@@ -10,7 +10,7 @@ on:
 
   pull_request:
     branches:
-      - 'features/**'
+      - main
     types:
       - opened
       - synchronize
