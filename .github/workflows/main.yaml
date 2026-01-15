@@ -48,7 +48,7 @@ jobs:
 
   docker-image:
 
-    # if: github.event_name == 'push'
+    if: github.event_name == 'push'
     needs: python-package
     runs-on: ubuntu-latest
 
@@ -64,3 +64,11 @@ jobs:
 
       - name: Test docker image
         run: .ci/run_docker_test.sh manipulator_scout:latest
+
+      - name: Deploy docker image
+        run: |
+          if [ -z "${{ github.ref }}" == "refs/tags/*" ]; then
+            echo "Deploy done"
+          else
+            echo "Deploy skipped"
+          fi
