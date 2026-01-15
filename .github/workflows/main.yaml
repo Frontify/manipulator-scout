@@ -57,18 +57,23 @@ jobs:
         uses: actions/checkout@v6
 
       - name: Install uv
-        run: pip install uv
+        run: |
+          pip install uv
+          uv sync --group ci
 
       - name: Build docker image
-        run: docker build . -t manipulator_scout:latest
+        run: |
+          scout_version="$(uv --quiet run python -m setuptools_scm)"
+          echo "MANIPULATOR_SCOUT_TAG=${scout_version}" >> $GITHUB_ENV
+          docker build . -t manipulator_scout:${scout_version}
 
       - name: Test docker image
-        run: .ci/run_docker_test.sh manipulator_scout:latest
+        run: .ci/run_docker_test.sh manipulator_scout:${MANIPULATOR_SCOUT_TAG}
 
       - name: Deploy docker image
         run: |
           if [ -z "${{ github.ref }}" == "refs/tags/*" ]; then
-            echo "Deploy done"
+            echo "Deploy of ${MANIPULATOR_SCOUT_TAG} done"
           else
-            echo "Deploy skipped"
+            echo "Deploy of ${MANIPULATOR_SCOUT_TAG} skipped"
           fi
