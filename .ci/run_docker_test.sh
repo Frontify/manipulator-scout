@@ -19,7 +19,6 @@ run_container() {
 }
 
 container_id="$(run_container)"
-read -n 1 -p "${container_id}"
 on_exit() {
     docker stop "${container_id}"
 }
