@@ -14,12 +14,13 @@ COPY --from=build "/usr/local/lib/python3.14/site-packages" "/usr/local/lib/pyth
 COPY --from=build "/usr/local/bin/uvicorn" "/usr/local/bin/uvicorn"
 
 EXPOSE ${ARG_PORT}
+ENV MANIPULATOR_SCOUT_PORT=${ARG_PORT}
 COPY --chmod=755 <<EOT /entrypoint.sh
 #!/bin/bash
 set -e
 uvicorn \\
     --host="0.0.0.0" \\
-    --port="${ARG_PORT}" \\
+    --port="${MANIPULATOR_SCOUT_PORT}" \\
     manipulator_scout:app
 EOT
 

@@ -26,7 +26,9 @@ jobs:
         python: ["3.14"]
 
     steps:
-      - uses: actions/checkout@v5
+      - name: Checkout code
+        uses: actions/checkout@v6
+
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
@@ -43,3 +45,25 @@ jobs:
 
       - name: Build package
         run: .ci/build_package.sh
+
+  docker-image:
+
+    # if: github.event_name == 'push'
+    needs: python-package
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Install uv
+        run: pip install uv
+
+      - name: Build docker image
+        run: docker build . -t manipulator_scout:latest
+
+      - name: Test docker image
+        run: |
+          docker run -it --rm manipulator_scout:latest
+          export MANIPULATOR_SCOUT_URL="http://localhost:41000"
+          uv run pytest -m "system"
