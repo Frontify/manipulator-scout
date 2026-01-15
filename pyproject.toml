@@ -38,3 +38,4 @@ target-version = "py314"
 [tool.pytest]
 addopts = [ "--cov", "manipulator_scout", "--cov-report", "term-missing", "--verbose" ]
 testpaths = ["tests"]
+markers = ["system"]
