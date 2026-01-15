@@ -1,11 +1,14 @@
 FROM python:3.14 AS build
+ARG ARG_PACKAGE_VERSION="0.0.0"
 
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
 
-COPY ./src ./pyproject.toml ./uv.lock /app/
+COPY ./src /app/src
+COPY ./pyproject.toml ./uv.lock /app/
 WORKDIR /app
 
-RUN uv build --clear --wheel && bash -c "pip3 install dist/*.whl"
+RUN SETUPTOOLS_SCM_PRETEND_VERSION="${ARG_PACKAGE_VERSION}" \
+    uv build --clear --wheel && bash -c "pip install dist/*.whl"
 
 FROM python:3.14 AS runtime
 ARG ARG_PORT=41000
