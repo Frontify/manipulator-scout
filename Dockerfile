@@ -17,7 +17,10 @@ EXPOSE ${ARG_PORT}
 COPY --chmod=755 <<EOT /entrypoint.sh
 #!/bin/bash
 set -e
-uvicorn --port=${ARG_PORT} manipulator_scout:app
+uvicorn \\
+    --host="0.0.0.0" \\
+    --port="${ARG_PORT}" \\
+    manipulator_scout:app
 EOT
 
 ENTRYPOINT ["/entrypoint.sh"]
