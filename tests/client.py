@@ -16,7 +16,7 @@ class ClientContext(contextlib.AbstractContextManager[httpx.Client]):
     def all() -> typing.Iterable:
         if url := os.getenv(ENV_MANIPULATOR_SCOUT_URL, None):
             client = httpx.Client(base_url=url)
-            return (pytest.param(ClientContext(client), marks=pytest.mark.skipif(not url), id="SPAWNED"),)
+            return (pytest.param(ClientContext(client), id="SPAWNED"),)
         return (
             pytest.param(ClientContext(TestClient(manipulator_scout.app)), id="TEST"),
             pytest.param(

@@ -63,7 +63,4 @@ jobs:
         run: docker build . -t manipulator_scout:latest
 
       - name: Test docker image
-        run: |
-          docker run -it --rm manipulator_scout:latest
-          export MANIPULATOR_SCOUT_URL="http://localhost:41000"
-          uv run pytest -m "system"
+        run: .ci/run_docker_test.sh manipulator_scout:latest

@@ -20,7 +20,7 @@ COPY --chmod=755 <<EOT /entrypoint.sh
 set -e
 uvicorn \\
     --host="0.0.0.0" \\
-    --port="${MANIPULATOR_SCOUT_PORT}" \\
+    --port="\${MANIPULATOR_SCOUT_PORT}" \\
     manipulator_scout:app
 EOT
 
