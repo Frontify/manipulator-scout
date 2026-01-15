@@ -1,0 +1,77 @@
+name: Package
+
+on:
+
+  push:
+    branches:
+      - main
+    tags:
+      - '[0-9]+.[0-9]+.[0-9]+(-rc.\d+)?'
+
+  pull_request:
+    branches:
+      - main
+    types:
+      - opened
+      - synchronize
+      - reopened
+      - ready_for_review
+
+jobs:
+  python-package:
+
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python: ["3.14"]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+
+      - name: Install uv
+        run: pip install uv
+
+      - name: Check format
+        run: .ci/check_style.sh
+
+      - name: Run tests
+        run: .ci/run_tests.sh
+
+      - name: Build package
+        run: .ci/build_package.sh
+
+  docker-image:
+
+    #if: github.event_name == 'push'
+    needs: python-package
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Install uv
+        run: pip install uv
+
+      - name: Build docker image
+        run: |
+          image_tag="$(git describe --tag || echo "0.0.0")"
+          echo "MANIPULATOR_SCOUT_IMAGE_TAG=${image_tag}" >> $GITHUB_ENV
+          .ci/build_docker_image.sh ${image_tag}
+
+      - name: Test docker image
+        run: .ci/run_docker_test.sh manipulator_scout:${MANIPULATOR_SCOUT_IMAGE_TAG}
+
+      - name: Deploy docker image
+        run: |
+          if [ -z "${{ github.ref }}" == "refs/tags/*" ]; then
+            echo "Deploy of ${MANIPULATOR_SCOUT_IMAGE_TAG} done"
+          else
+            echo "Deploy of ${MANIPULATOR_SCOUT_IMAGE_TAG} skipped"
+          fi
