@@ -61,7 +61,7 @@ jobs:
 
       - name: Build docker image
         run: |
-          image_tag="$(git describe --tag)"
+          image_tag="$(git describe --tag || echo "0.0.0")"
           echo "MANIPULATOR_SCOUT_IMAGE_TAG=${image_tag}" >> $GITHUB_ENV
           .ci/build_docker_image.sh ${image_tag}
 
