@@ -14,4 +14,4 @@ jobs:
         uses: actions/checkout@v6
 
       - name: Check shell scripts
-        run: .ci/validate_shellscripts.s
+        run: .ci/validate_shellscripts.sh
