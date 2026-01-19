@@ -52,7 +52,7 @@ jobs:
 
   docker-image:
 
-    #if: github.event_name == 'push'
+    if: github.event_name == 'push'
     needs: python-package
     runs-on: ubuntu-latest
 
@@ -86,7 +86,7 @@ jobs:
 
       - name: Deploy docker image
         run: |
-          if [ -z "${{ github.ref }}" == "refs/tags/*" ]; then
+          if [ "${{ github.ref }}" == "refs/tags/*" ]; then
             docker_remote="361392333220.dkr.ecr.eu-central-1.amazonaws.com"
             full_image_name="${docker_remote}/manipulator_scout:${MANIPULATOR_SCOUT_IMAGE_TAG}"
             latest_image_name="${docker_remote}/manipulator_scout:latest"
