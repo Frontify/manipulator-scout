@@ -19,10 +19,17 @@ class InfoModel(pydantic.BaseModel):
     run_at: datetime.datetime
 
 
+class HistogramBinModel(pydantic.BaseModel):
+    upper_bin: float
+    count: int
+
+
 class StatisticModel(pydantic.BaseModel):
     count: int = 0
     mean: float = 0.0
+    median: float = 0.0
     stddev: float = 0.0
+    hist: list[HistogramBinModel] = []
 
 
 class PercentileModel(pydantic.BaseModel):
@@ -57,26 +64,28 @@ def parse_logs(logs: str) -> pd.DataFrame:
     return df
 
 
-def analyze_timestamp_differences(timestamp_series: pd.Series) -> tuple[float, float]:
+def analyze_timestamp_differences(timestamp_series: pd.Series) -> StatisticModel:
     diff = np.diff(timestamp_series.sort_values())
-    return float(np.mean(diff)), float(np.std(diff))
+    hist, bin_edges = np.histogram(diff, bins=10)
+    return StatisticModel(
+        count=len(timestamp_series),
+        mean=float(np.mean(diff)),
+        median=float(np.median(diff)),
+        stddev=float(np.std(diff)),
+        hist=[HistogramBinModel(upper_bin=float(b), count=int(c)) for (b, c) in zip(bin_edges[1:], hist)],
+    )
 
 
 def evaluate_heartbeat(
     df: pd.DataFrame,
 ) -> HeartBeatModel | None:
     heartbeats = df.loc[df["request.url"] == HEARTBEAT_URL]
-    if not (count := len(heartbeats)):
+    if not len(heartbeats):
         return None
 
     timestamps_s = heartbeats["timestamp"].map(convert_ms2s)
     first_index = heartbeats.index[0]
-    mean, stddev = analyze_timestamp_differences(timestamps_s)
-    beats = StatisticModel(
-        mean=mean,
-        count=count,
-        stddev=stddev,
-    )
+    beats = analyze_timestamp_differences(timestamps_s)
     info = InfoModel(
         server=heartbeats["response.headers.server"][first_index],
         run_at=datetime.datetime.fromtimestamp(convert_ms2s(heartbeats["timestamp"][first_index])),
@@ -86,14 +95,13 @@ def evaluate_heartbeat(
 
 def evaluate_stress(df: pd.DataFrame) -> StressModel | None:
     stress_objects = df.loc[df["object"] == "image"]
-    if not (count := len(stress_objects)):
+    if not len(stress_objects):
         return None
 
     time_total = stress_objects["time.total"]
     first_index = stress_objects.index[0]
     image_in_time = (time_total < convert_s2ms(REQUEST_TIMEOUT_S)).sum()
     timestamps_s = (stress_objects["timestamp"] - time_total).map(convert_ms2s)
-    mean, stddev = analyze_timestamp_differences(timestamps_s)
     quantiles = [0.1, 0.25, 0.5, 0.75, 0.9, 0.95, 1.0]
     quantile_values = time_total.quantile(q=quantiles)
     info = InfoModel(
@@ -108,7 +116,7 @@ def evaluate_stress(df: pd.DataFrame) -> StressModel | None:
         timing=[
             PercentileModel(percentile=p, value=v) for (p, v) in zip(quantiles, quantile_values.map(convert_ms2s))
         ],
-        requests=StatisticModel(count=count, mean=mean, stddev=stddev),
+        requests=analyze_timestamp_differences(timestamps_s),
         heartbeats=heartbeat.heartbeats,
     )
     return model
