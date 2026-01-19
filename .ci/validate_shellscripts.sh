@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/bash -e
 
 scripts="$(git ls-files '*.sh')"
 while IFS= read -r script
