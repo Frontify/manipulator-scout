@@ -85,16 +85,12 @@ jobs:
         uses: aws-actions/amazon-ecr-login@v2
 
       - name: Deploy docker image
+        if: github.ref_type == 'tag'
         run: |
-          if [ "${{ github.ref }}" == "refs/tags/*" ]; then
-            docker_remote="361392333220.dkr.ecr.eu-central-1.amazonaws.com"
-            full_image_name="${docker_remote}/manipulator_scout:${MANIPULATOR_SCOUT_IMAGE_TAG}"
-            latest_image_name="${docker_remote}/manipulator_scout:latest"
-            docker tag manipulator_scout:${MANIPULATOR_SCOUT_IMAGE_TAG} ${full_image_name}
-            docker tag manipulator_scout:${MANIPULATOR_SCOUT_IMAGE_TAG} ${latest_image_name}
-            docker push ${full_image_name}
-            docker push ${latest_image_name}
-            echo "Deploy of ${MANIPULATOR_SCOUT_IMAGE_TAG} done"
-          else
-            echo "Deploy of ${MANIPULATOR_SCOUT_IMAGE_TAG} skipped"
-          fi
+          docker_remote="361392333220.dkr.ecr.eu-central-1.amazonaws.com"
+          full_image_name="${docker_remote}/manipulator_scout:${MANIPULATOR_SCOUT_IMAGE_TAG}"
+          latest_image_name="${docker_remote}/manipulator_scout:latest"
+          docker tag manipulator_scout:${MANIPULATOR_SCOUT_IMAGE_TAG} ${full_image_name}
+          docker tag manipulator_scout:${MANIPULATOR_SCOUT_IMAGE_TAG} ${latest_image_name}
+          docker push ${full_image_name}
+          docker push ${latest_image_name}
