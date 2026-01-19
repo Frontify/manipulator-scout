@@ -1,6 +1,6 @@
 #!/bin/bash -e
 
-CI_DIR="$(dirname $0)"
+CI_DIR="$(dirname "$0")"
 
 if [ -z "$1" ]; then
     image_tag="$(git describe --tag || echo "0.0.0")"
