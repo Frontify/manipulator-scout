@@ -52,7 +52,7 @@ class StressModel(pydantic.BaseModel):
 
 
 def parse_logs(logs: str) -> pd.DataFrame:
-    logs_as_json = "[" + ",\n".join(logs.split("\n")[:-1]) + "]"
+    logs_as_json = "[" + ",".join(logs.split("\n")[:-1]) + "]"
     df = pd.json_normalize(json.loads(logs_as_json))
     return df
 
