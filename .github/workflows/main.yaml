@@ -17,6 +17,11 @@ on:
       - reopened
       - ready_for_review
 
+permissions:
+  id-token: write
+  contents: read
+
+
 jobs:
   python-package:
 
