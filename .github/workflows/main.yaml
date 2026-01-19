@@ -52,7 +52,7 @@ jobs:
 
   docker-image:
 
-    if: github.event_name == 'push'
+    #if: github.event_name == 'push'
     needs: python-package
     runs-on: ubuntu-latest
 
