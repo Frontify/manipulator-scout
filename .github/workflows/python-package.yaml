@@ -48,7 +48,7 @@ jobs:
         run: .ci/run_tests.sh
 
       - name: Build package
-        run: .ci/build_package.sh
+        run: .ci/build_python_package.sh
 
   docker-image:
 
