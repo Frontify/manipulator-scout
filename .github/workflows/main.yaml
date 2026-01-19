@@ -68,9 +68,24 @@ jobs:
       - name: Test docker image
         run: .ci/run_docker_test.sh manipulator_scout:${MANIPULATOR_SCOUT_IMAGE_TAG}
 
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v5
+        with:
+          aws-region: eu-central-1
+          role-session-name: GithubActions
+          role-to-assume:
+
+      # https://github.com/aws-actions/amazon-ecr-login
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
       - name: Deploy docker image
         run: |
           if [ -z "${{ github.ref }}" == "refs/tags/*" ]; then
+            full_image_name="361392333220.dkr.ecr.eu-central-1.amazonaws.com/manipulator_scout:${MANIPULATOR_SCOUT_IMAGE_TAG}"
+            docker tag manipulator_scout:${MANIPULATOR_SCOUT_IMAGE_TAG} ${full_image_name}
+            docker push ${full_image_name}
             echo "Deploy of ${MANIPULATOR_SCOUT_IMAGE_TAG} done"
           else
             echo "Deploy of ${MANIPULATOR_SCOUT_IMAGE_TAG} skipped"
