@@ -1,4 +1,4 @@
-name: Python Package
+name: Package
 
 on:
 
@@ -17,8 +17,12 @@ on:
       - reopened
       - ready_for_review
 
+permissions:
+  id-token: write
+  contents: read
+
 jobs:
-  build:
+  python-package:
 
     runs-on: ubuntu-latest
     strategy:
@@ -26,7 +30,9 @@ jobs:
         python: ["3.14"]
 
     steps:
-      - uses: actions/checkout@v5
+      - name: Checkout code
+        uses: actions/checkout@v6
+
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
@@ -43,3 +49,48 @@ jobs:
 
       - name: Build package
         run: .ci/build_package.sh
+
+  docker-image:
+
+    #if: github.event_name == 'push'
+    needs: python-package
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Install uv
+        run: pip install uv
+
+      - name: Build docker image
+        run: |
+          image_tag="$(git describe --tag || echo "0.0.0")"
+          echo "MANIPULATOR_SCOUT_IMAGE_TAG=${image_tag}" >> $GITHUB_ENV
+          .ci/build_docker_image.sh ${image_tag}
+
+      - name: Test docker image
+        run: .ci/run_docker_test.sh manipulator_scout:${MANIPULATOR_SCOUT_IMAGE_TAG}
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v5
+        with:
+          aws-region: eu-central-1
+          role-session-name: GithubActions
+          role-to-assume: arn:aws:iam::361392333220:role/external-github-platform-common
+
+      # https://github.com/aws-actions/amazon-ecr-login
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Deploy docker image
+        if: github.ref_type == 'tag'
+        run: |
+          docker_remote="361392333220.dkr.ecr.eu-central-1.amazonaws.com"
+          full_image_name="${docker_remote}/manipulator_scout:${MANIPULATOR_SCOUT_IMAGE_TAG}"
+          latest_image_name="${docker_remote}/manipulator_scout:latest"
+          docker tag manipulator_scout:${MANIPULATOR_SCOUT_IMAGE_TAG} ${full_image_name}
+          docker tag manipulator_scout:${MANIPULATOR_SCOUT_IMAGE_TAG} ${latest_image_name}
+          docker push ${full_image_name}
+          docker push ${latest_image_name}
