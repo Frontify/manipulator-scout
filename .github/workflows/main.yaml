@@ -78,7 +78,7 @@ jobs:
         with:
           aws-region: eu-central-1
           role-session-name: GithubActions
-          role-to-assume:
+          role-to-assume: arn:aws:iam::361392333220:role/external-github-common-infrastructure
 
       # https://github.com/aws-actions/amazon-ecr-login
       - name: Login to Amazon ECR
