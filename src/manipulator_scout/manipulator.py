@@ -15,7 +15,7 @@ convert_s2ms = manipulator_scout.units.s2ms
 
 
 class InfoModel(pydantic.BaseModel):
-    branch: str
+    server: str
     run_at: datetime.datetime
 
 
@@ -78,7 +78,7 @@ def evaluate_heartbeat(
         stddev=stddev,
     )
     info = InfoModel(
-        branch=heartbeats["response.headers.server"][first_index].split("/")[1],
+        server=heartbeats["response.headers.server"][first_index],
         run_at=datetime.datetime.fromtimestamp(convert_ms2s(heartbeats["timestamp"][first_index])),
     )
     return HeartBeatModel(info=info, heartbeats=beats)
@@ -97,7 +97,7 @@ def evaluate_stress(df: pd.DataFrame) -> StressModel | None:
     quantiles = [0.1, 0.25, 0.5, 0.75, 0.9, 0.95, 1.0]
     quantile_values = time_total.quantile(q=quantiles)
     info = InfoModel(
-        branch=stress_objects["response.headers.server"][first_index].split("/")[1],
+        server=stress_objects["response.headers.server"][first_index],
         run_at=datetime.datetime.fromtimestamp(convert_ms2s(stress_objects["timestamp"][first_index])),
     )
     heartbeat = evaluate_heartbeat(df) or HeartBeatModel(info=info, heartbeats=StatisticModel())
