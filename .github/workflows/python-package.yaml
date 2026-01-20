@@ -77,6 +77,7 @@ jobs:
         run: .ci/run_docker_test.sh manipulator-scout:${MANIPULATOR_SCOUT_IMAGE_TAG}
 
       - name: Configure AWS Credentials
+        if: github.ref_type == 'tag'
         uses: aws-actions/configure-aws-credentials@v5
         with:
           aws-region: eu-central-1
@@ -85,6 +86,7 @@ jobs:
 
       # https://github.com/aws-actions/amazon-ecr-login
       - name: Login to Amazon ECR
+        if: github.ref_type == 'tag'
         id: login-ecr
         uses: aws-actions/amazon-ecr-login@v2
 
