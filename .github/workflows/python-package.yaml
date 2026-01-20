@@ -22,6 +22,9 @@ permissions:
   id-token: write
   contents: read
 
+env:
+  DOCKER_REGISTRY: 361392333220.dkr.ecr.eu-central-1.amazonaws.com
+
 jobs:
   python-package:
 
@@ -86,12 +89,19 @@ jobs:
         uses: aws-actions/amazon-ecr-login@v2
 
       - name: Deploy docker image
+        id: deploy-docker-image
         if: github.ref_type == 'tag'
         run: |
-          docker_remote="361392333220.dkr.ecr.eu-central-1.amazonaws.com"
-          full_image_name="${docker_remote}/manipulator-scout:${MANIPULATOR_SCOUT_IMAGE_TAG}"
-          latest_image_name="${docker_remote}/manipulator-scout:latest"
+          full_image_name="${DOCKER_REGISTRY}/manipulator-scout:${MANIPULATOR_SCOUT_IMAGE_TAG}"
           docker tag manipulator-scout:${MANIPULATOR_SCOUT_IMAGE_TAG} ${full_image_name}
-          docker tag manipulator-scout:${MANIPULATOR_SCOUT_IMAGE_TAG} ${latest_image_name}
           docker push ${full_image_name}
+          if [[ "${MANIPULATOR_SCOUT_IMAGE_TAG}" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+              echo "is_stable=true" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Deploy docker image as latest
+        if: github.ref_type == 'tag' && steps.deploy-docker-image.outputs.is_stable == 'true'
+        run: |
+          latest_image_name="${DOCKER_REGISTRY}/manipulator-scout:latest"
+          docker tag manipulator-scout:${MANIPULATOR_SCOUT_IMAGE_TAG} ${latest_image_name}
           docker push ${latest_image_name}
