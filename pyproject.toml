@@ -20,6 +20,7 @@ requires = ["setuptools>=80", "setuptools_scm>=9"]
 build-backend = "setuptools.build_meta"
 
 [tool.setuptools_scm]
+version_scheme = "no-guess-dev"
 
 [dependency-groups]
 ci = [
