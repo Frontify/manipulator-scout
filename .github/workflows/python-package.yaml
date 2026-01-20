@@ -71,7 +71,7 @@ jobs:
           .ci/build_docker_image.sh ${image_tag}
 
       - name: Test docker image
-        run: .ci/run_docker_test.sh manipulator_scout:${MANIPULATOR_SCOUT_IMAGE_TAG}
+        run: .ci/run_docker_test.sh manipulator-scout:${MANIPULATOR_SCOUT_IMAGE_TAG}
 
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v5
@@ -89,9 +89,9 @@ jobs:
         if: github.ref_type == 'tag'
         run: |
           docker_remote="361392333220.dkr.ecr.eu-central-1.amazonaws.com"
-          full_image_name="${docker_remote}/manipulator_scout:${MANIPULATOR_SCOUT_IMAGE_TAG}"
-          latest_image_name="${docker_remote}/manipulator_scout:latest"
-          docker tag manipulator_scout:${MANIPULATOR_SCOUT_IMAGE_TAG} ${full_image_name}
-          docker tag manipulator_scout:${MANIPULATOR_SCOUT_IMAGE_TAG} ${latest_image_name}
+          full_image_name="${docker_remote}/manipulator-scout:${MANIPULATOR_SCOUT_IMAGE_TAG}"
+          latest_image_name="${docker_remote}/manipulator-scout:latest"
+          docker tag manipulator-scout:${MANIPULATOR_SCOUT_IMAGE_TAG} ${full_image_name}
+          docker tag manipulator-scout:${MANIPULATOR_SCOUT_IMAGE_TAG} ${latest_image_name}
           docker push ${full_image_name}
           docker push ${latest_image_name}

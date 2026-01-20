@@ -13,4 +13,4 @@ package_version="$(uv --quiet run python -m setuptools_scm)"
 
 docker build "${CI_DIR}/.." \
     --build-arg "ARG_PACKAGE_VERSION=${package_version}" \
-    --tag manipulator_scout:"${image_tag}"
+    --tag manipulator-scout:"${image_tag}"

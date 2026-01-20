@@ -1,7 +1,7 @@
 #!/bin/bash -e
 
 if [ -z "$1" ]; then
-    image="manipulator_scout:latest"
+    image="manipulator-scout:latest"
 else
     image="$1"
 fi
