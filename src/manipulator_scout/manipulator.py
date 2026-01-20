@@ -47,6 +47,7 @@ class StressModel(pydantic.BaseModel):
     in_time: int
     cancelled: int
     timing: list[PercentileModel]
+    requests_per_second: float
     requests: StatisticModel
     heartbeats: StatisticModel
 
@@ -64,11 +65,11 @@ def parse_logs(logs: str) -> pd.DataFrame:
     return df
 
 
-def analyze_timestamp_differences(timestamp_series: pd.Series) -> StatisticModel:
-    diff = np.diff(timestamp_series.sort_values())
+def analyze_timestamp_differences(ascending_timestamp_series: pd.Series) -> StatisticModel:
+    diff = np.diff(ascending_timestamp_series)
     hist, bin_edges = np.histogram(diff, bins=10)
     return StatisticModel(
-        count=len(timestamp_series),
+        count=len(ascending_timestamp_series),
         mean=float(np.mean(diff)),
         median=float(np.median(diff)),
         stddev=float(np.std(diff)),
@@ -83,12 +84,13 @@ def evaluate_heartbeat(
     if not len(heartbeats):
         return None
 
-    timestamps_s = heartbeats["timestamp"].map(convert_ms2s)
-    first_index = heartbeats.index[0]
-    beats = analyze_timestamp_differences(timestamps_s)
+    ascending_timestamps_s = heartbeats["timestamp"].map(convert_ms2s).sort_values()
+    earliest_index = ascending_timestamps_s.index[0]
+    earliest_timestamp_s = ascending_timestamps_s[earliest_index]
+    beats = analyze_timestamp_differences(ascending_timestamps_s)
     info = InfoModel(
-        server=heartbeats["response.headers.server"][first_index],
-        run_at=datetime.datetime.fromtimestamp(convert_ms2s(heartbeats["timestamp"][first_index])),
+        server=heartbeats["response.headers.server"][earliest_index],
+        run_at=datetime.datetime.fromtimestamp(earliest_timestamp_s),
     )
     return HeartBeatModel(info=info, heartbeats=beats)
 
@@ -99,14 +101,17 @@ def evaluate_stress(df: pd.DataFrame) -> StressModel | None:
         return None
 
     time_total = stress_objects["time.total"]
-    first_index = stress_objects.index[0]
     image_in_time = (time_total < convert_s2ms(REQUEST_TIMEOUT_S)).sum()
-    timestamps_s = (stress_objects["timestamp"] - time_total).map(convert_ms2s)
+    ascending_timestamps_s = (stress_objects["timestamp"] - time_total).map(convert_ms2s).sort_values()
+    earliest_index = ascending_timestamps_s.index[0]
+    earliest_timestamp_s = ascending_timestamps_s[earliest_index]
+    latest_timestamp_s = convert_ms2s(stress_objects["timestamp"].max())
+    processing_time_s = latest_timestamp_s - earliest_timestamp_s
     quantiles = [0.1, 0.25, 0.5, 0.75, 0.9, 0.95, 1.0]
     quantile_values = time_total.quantile(q=quantiles)
     info = InfoModel(
-        server=stress_objects["response.headers.server"][first_index],
-        run_at=datetime.datetime.fromtimestamp(convert_ms2s(stress_objects["timestamp"][first_index])),
+        server=stress_objects["response.headers.server"][earliest_index],
+        run_at=datetime.datetime.fromtimestamp(earliest_timestamp_s),
     )
     heartbeat = evaluate_heartbeat(df) or HeartBeatModel(info=info, heartbeats=StatisticModel())
     model = StressModel(
@@ -116,7 +121,8 @@ def evaluate_stress(df: pd.DataFrame) -> StressModel | None:
         timing=[
             PercentileModel(percentile=p, value=v) for (p, v) in zip(quantiles, quantile_values.map(convert_ms2s))
         ],
-        requests=analyze_timestamp_differences(timestamps_s),
+        requests_per_second=len(stress_objects) / processing_time_s,
+        requests=analyze_timestamp_differences(ascending_timestamps_s),
         heartbeats=heartbeat.heartbeats,
     )
     return model
