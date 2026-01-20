@@ -6,7 +6,8 @@ on:
     branches:
       - main
     tags:
-      - '[0-9]+.[0-9]+.[0-9]+(-rc.\d+)?'
+      - '[0-9]+.[0-9]+.[0-9]+'
+      - '[0-9]+.[0-9]+.[0-9]+-rc.[0-9]+'
 
   pull_request:
     branches:
@@ -20,6 +21,9 @@ on:
 permissions:
   id-token: write
   contents: read
+
+env:
+  DOCKER_REGISTRY: 361392333220.dkr.ecr.eu-central-1.amazonaws.com
 
 jobs:
   python-package:
@@ -52,7 +56,7 @@ jobs:
 
   docker-image:
 
-    #if: github.event_name == 'push'
+    if: github.event_name == 'push'
     needs: python-package
     runs-on: ubuntu-latest
 
@@ -70,9 +74,10 @@ jobs:
           .ci/build_docker_image.sh ${image_tag}
 
       - name: Test docker image
-        run: .ci/run_docker_test.sh manipulator_scout:${MANIPULATOR_SCOUT_IMAGE_TAG}
+        run: .ci/run_docker_test.sh manipulator-scout:${MANIPULATOR_SCOUT_IMAGE_TAG}
 
       - name: Configure AWS Credentials
+        if: github.ref_type == 'tag'
         uses: aws-actions/configure-aws-credentials@v5
         with:
           aws-region: eu-central-1
@@ -81,16 +86,24 @@ jobs:
 
       # https://github.com/aws-actions/amazon-ecr-login
       - name: Login to Amazon ECR
+        if: github.ref_type == 'tag'
         id: login-ecr
         uses: aws-actions/amazon-ecr-login@v2
 
       - name: Deploy docker image
+        id: deploy-docker-image
         if: github.ref_type == 'tag'
         run: |
-          docker_remote="361392333220.dkr.ecr.eu-central-1.amazonaws.com"
-          full_image_name="${docker_remote}/manipulator_scout:${MANIPULATOR_SCOUT_IMAGE_TAG}"
-          latest_image_name="${docker_remote}/manipulator_scout:latest"
-          docker tag manipulator_scout:${MANIPULATOR_SCOUT_IMAGE_TAG} ${full_image_name}
-          docker tag manipulator_scout:${MANIPULATOR_SCOUT_IMAGE_TAG} ${latest_image_name}
+          full_image_name="${DOCKER_REGISTRY}/manipulator-scout:${MANIPULATOR_SCOUT_IMAGE_TAG}"
+          docker tag manipulator-scout:${MANIPULATOR_SCOUT_IMAGE_TAG} ${full_image_name}
           docker push ${full_image_name}
+          if [[ "${MANIPULATOR_SCOUT_IMAGE_TAG}" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+              echo "is_stable=true" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Deploy docker image as latest
+        if: github.ref_type == 'tag' && steps.deploy-docker-image.outputs.is_stable == 'true'
+        run: |
+          latest_image_name="${DOCKER_REGISTRY}/manipulator-scout:latest"
+          docker tag manipulator-scout:${MANIPULATOR_SCOUT_IMAGE_TAG} ${latest_image_name}
           docker push ${latest_image_name}
