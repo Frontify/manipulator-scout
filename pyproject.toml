@@ -1,0 +1,43 @@
+[project]
+name = "manipulator_scout"
+description = "Web API endpoint for scouting, analyzing, and interpreting runtime telemetry from `manipulator` test executions."
+dynamic = ["version"]
+readme = "README.md"
+authors = [
+    { name = "Nicolas Koller", email = "nicolas.koller@frontify.com" }
+]
+requires-python = ">=3.14"
+dependencies = [
+    "fastapi[standard]>=0.128.0",
+    "numpy>=2.4.1",
+    "pandas>=2.3.3",
+    "python-multipart>=0.0.21",
+    "uvicorn>=0.40.0",
+]
+
+[build-system]
+requires = ["setuptools>=80", "setuptools_scm>=9"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools_scm]
+version_scheme = "no-guess-dev"
+
+[dependency-groups]
+ci = [
+    "setuptools-scm>=9.2.2",
+]
+dev = [
+    "pytest>=9.0.2",
+    "pytest-cov>=7.0.0",
+    "ruff>=0.14.11",
+]
+
+[tool.ruff]
+line-length = 119
+indent-width = 4
+target-version = "py314"
+
+[tool.pytest]
+addopts = [ "--cov", "manipulator_scout", "--cov-report", "term-missing", "--verbose" ]
+testpaths = ["tests"]
+markers = ["system"]
