@@ -39,7 +39,12 @@ class PercentileModel(pydantic.BaseModel):
 
 class HeartBeatModel(pydantic.BaseModel):
     info: InfoModel
-    heartbeats: StatisticModel
+    period_accuracy: StatisticModel
+
+    @pydantic.computed_field
+    @property
+    def version(self) -> int:
+        return 1
 
 
 class StressModel(pydantic.BaseModel):
@@ -48,15 +53,20 @@ class StressModel(pydantic.BaseModel):
     cancelled: int
     timing: list[PercentileModel]
     requests_per_second: float
-    requests: StatisticModel
-    heartbeats: StatisticModel
+    requests_period_accuracy: StatisticModel
+    heartbeats_period_accuracy: StatisticModel
 
     @pydantic.computed_field
     @property
     def availability(self) -> float:
-        if self.requests.count > 0.0:
-            return self.in_time / self.requests.count
+        if self.requests_period_accuracy.count > 0.0:
+            return self.in_time / self.requests_period_accuracy.count
         return 0.0
+
+    @pydantic.computed_field
+    @property
+    def version(self) -> int:
+        return 1
 
 
 def parse_logs(logs: str) -> pd.DataFrame:
@@ -92,7 +102,7 @@ def evaluate_heartbeat(
         server=heartbeats["response.headers.server"][earliest_index],
         run_at=datetime.datetime.fromtimestamp(earliest_timestamp_s),
     )
-    return HeartBeatModel(info=info, heartbeats=beats)
+    return HeartBeatModel(info=info, period_accuracy=beats)
 
 
 def evaluate_stress(df: pd.DataFrame) -> StressModel | None:
@@ -113,7 +123,7 @@ def evaluate_stress(df: pd.DataFrame) -> StressModel | None:
         server=stress_objects["response.headers.server"][earliest_index],
         run_at=datetime.datetime.fromtimestamp(earliest_timestamp_s),
     )
-    heartbeat = evaluate_heartbeat(df) or HeartBeatModel(info=info, heartbeats=StatisticModel())
+    heartbeat = evaluate_heartbeat(df) or HeartBeatModel(info=info, period_accuracy=StatisticModel())
     model = StressModel(
         info=info,
         in_time=image_in_time,
@@ -122,7 +132,7 @@ def evaluate_stress(df: pd.DataFrame) -> StressModel | None:
             PercentileModel(percentile=p, value=v) for (p, v) in zip(quantiles, quantile_values.map(convert_ms2s))
         ],
         requests_per_second=len(stress_objects) / processing_time_s,
-        requests=analyze_timestamp_differences(ascending_timestamps_s),
-        heartbeats=heartbeat.heartbeats,
+        requests_period_accuracy=analyze_timestamp_differences(ascending_timestamps_s),
+        heartbeats_period_accuracy=heartbeat.period_accuracy,
     )
     return model

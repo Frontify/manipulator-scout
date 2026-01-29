@@ -18,9 +18,10 @@ def test___evaluate_stress___known_logs___evaluates_expected_values(logs_path):
     model = manip.evaluate_stress(df)
 
     assert model is not None
+    assert model.version == 1
     assert model.info.server == "TwicPics/1.7.67"
     assert model.info.run_at == datetime.datetime.fromtimestamp(earlist_timestamp_s)
-    assert model.requests.count == 561
-    assert model.requests_per_second == pytest.approx(model.requests.count / processing_time_s)
-    assert model.heartbeats is not None
-    assert model.heartbeats.count == 182
+    assert model.requests_period_accuracy.count == 561
+    assert model.requests_per_second == pytest.approx(model.requests_period_accuracy.count / processing_time_s)
+    assert model.heartbeats_period_accuracy is not None
+    assert model.heartbeats_period_accuracy.count == 182
