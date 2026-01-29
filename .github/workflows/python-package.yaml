@@ -1,4 +1,4 @@
-name: Python Package
+name: Package
 
 on:
 
@@ -6,7 +6,8 @@ on:
     branches:
       - main
     tags:
-      - '[0-9]+.[0-9]+.[0-9]+(-rc.\d+)?'
+      - '[0-9]+.[0-9]+.[0-9]+'
+      - '[0-9]+.[0-9]+.[0-9]+-rc.[0-9]+'
 
   pull_request:
     branches:
@@ -17,8 +18,15 @@ on:
       - reopened
       - ready_for_review
 
+permissions:
+  id-token: write
+  contents: read
+
+env:
+  DOCKER_REGISTRY: 361392333220.dkr.ecr.eu-central-1.amazonaws.com
+
 jobs:
-  build:
+  python-package:
 
     runs-on: ubuntu-latest
     strategy:
@@ -26,7 +34,9 @@ jobs:
         python: ["3.14"]
 
     steps:
-      - uses: actions/checkout@v5
+      - name: Checkout code
+        uses: actions/checkout@v6
+
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
@@ -42,4 +52,58 @@ jobs:
         run: .ci/run_tests.sh
 
       - name: Build package
-        run: .ci/build_package.sh
+        run: .ci/build_python_package.sh
+
+  docker-image:
+
+    if: github.event_name == 'push'
+    needs: python-package
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Install uv
+        run: pip install uv
+
+      - name: Build docker image
+        run: |
+          image_tag="$(git describe --tag || echo "0.0.0")"
+          echo "MANIPULATOR_SCOUT_IMAGE_TAG=${image_tag}" >> $GITHUB_ENV
+          .ci/build_docker_image.sh ${image_tag}
+
+      - name: Test docker image
+        run: .ci/run_docker_test.sh manipulator-scout:${MANIPULATOR_SCOUT_IMAGE_TAG}
+
+      - name: Configure AWS Credentials
+        if: github.ref_type == 'tag'
+        uses: aws-actions/configure-aws-credentials@v5
+        with:
+          aws-region: eu-central-1
+          role-session-name: GithubActions
+          role-to-assume: arn:aws:iam::361392333220:role/external-github-platform-common
+
+      # https://github.com/aws-actions/amazon-ecr-login
+      - name: Login to Amazon ECR
+        if: github.ref_type == 'tag'
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Deploy docker image
+        id: deploy-docker-image
+        if: github.ref_type == 'tag'
+        run: |
+          full_image_name="${DOCKER_REGISTRY}/manipulator-scout:${MANIPULATOR_SCOUT_IMAGE_TAG}"
+          docker tag manipulator-scout:${MANIPULATOR_SCOUT_IMAGE_TAG} ${full_image_name}
+          docker push ${full_image_name}
+          if [[ "${MANIPULATOR_SCOUT_IMAGE_TAG}" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+              echo "is_stable=true" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Deploy docker image as latest
+        if: github.ref_type == 'tag' && steps.deploy-docker-image.outputs.is_stable == 'true'
+        run: |
+          latest_image_name="${DOCKER_REGISTRY}/manipulator-scout:latest"
+          docker tag manipulator-scout:${MANIPULATOR_SCOUT_IMAGE_TAG} ${latest_image_name}
+          docker push ${latest_image_name}
